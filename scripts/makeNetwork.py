@@ -7,6 +7,7 @@ import struct
 import socket
 import stat
 import os
+import psycopg2
 
 debug = 0
 
@@ -107,7 +108,7 @@ def findNonLoInterfaces(data, endianness):
         if g:
             (iface, addr) = g.groups()
             addr = socket.inet_ntoa(struct.pack(fmt, int(addr, 16)))
-            if addr != "127.0.0.1" and addr != "0.0.0.0":
+            if addr != "127.0.0.1" and addr != "0.0.0.0": # 0x0100007f
                 result.append((iface, addr))
     return result
 
@@ -290,7 +291,24 @@ def qemuCmd(iid, network, arch, endianness):
     else:
         raise Exception("Unsupported architecture")
 
-    return QEMUCMDTEMPLATE % {'IID': iid,
+    try:
+        conn = psycopg2.connect(database='firmware', user='firmadyne',
+                password='firmadyne', host='127.0.0.1')
+        cur = conn.cursor()
+        cur.execute("UPDATE image SET guest_ip='%s' WHERE id=%d"%(ip,iid))
+        cur.execute("UPDATE image SET netdev='%s' WHERE id=%d"%(netdev,iid))
+        cur.execute("UPDATE image SET network_inferred=true WHERE id=%d"%(iid))
+        conn.commit()
+        print('network_inferred=true, guest_ip=%s, netdev=%s'%(ip,netdev))
+    except Exception as ex:
+        import traceback
+        traceback.print_exc()
+        import pdb
+        pdb.set_trace()
+    finally:
+        conn.close()
+    return QEMUCMDTEMPLATE % {'IID': iid, 'GUESTIP': ip, 'NETDEVIP': closeIp(ip),
+                              'HASVLAN' : hasVlan, 'VLANID': vlan_id,
                               'ARCHEND' : arch + endianness,
                               'START_NET' : startNetwork(network),
                               'STOP_NET' : stopNetwork(network),
@@ -323,7 +341,7 @@ def process(infile, iid, arch, endianness=None, makeQemuCmd=False, outfile=None)
             #find vlan_ids for all interfaces in the bridge
             vlans = findVlanInfoForDev(data, dev)
             #create a config for each tuple
-            network.add((buildConfig(iwi, dev, vlans, macChanges)))
+            network.add(buildConfig(iwi, dev, vlans, macChanges))
             deviceHasBridge = True
 
         #if there is no bridge just add the interface
