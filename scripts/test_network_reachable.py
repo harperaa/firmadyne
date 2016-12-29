@@ -151,7 +151,7 @@ def construct(iid):
     os.system('sudo rm -f {WORK_DIR}/qemu.final.serial.log'.format(**locals()))
     ret = os.system(get_qemu_cmd_line(iid, archend))
     if ret!=0:
-        print('failed to launch %s'%get_qemu(archend), file=sys.stderr)
+        print('failed to launch %s'%get_qemu(archend), sys.stderr)
         return False
     return True
 

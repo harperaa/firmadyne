@@ -64,6 +64,14 @@ killall ${QEMU}
 echo "Done!"
 """
 
+def closeIp(ip):
+    tups = [int(x) for x in ip.split(".")]
+    if tups[3] != 1:
+        tups[3] -= 1
+    else:
+        tups[3] = 2
+    return ".".join([str(x) for x in tups])
+    
 def stripTimestamps(data):
     lines = data.split("\n")
     #throw out the timestamps
@@ -292,6 +300,15 @@ def qemuCmd(iid, network, arch, endianness):
         raise Exception("Unsupported architecture")
 
     try:
+        ip = list(network)[0][0]
+        netdev = list(network)[0][1]
+        vlan_id = list(network)[0][2]
+        #raise Exception("debugging")
+        if vlan_id == None:
+            hasVlan = False
+        else:
+            hasVlan - True
+        
         conn = psycopg2.connect(database='firmware', user='firmadyne',
                 password='firmadyne', host='127.0.0.1')
         cur = conn.cursor()
@@ -300,6 +317,7 @@ def qemuCmd(iid, network, arch, endianness):
         cur.execute("UPDATE image SET network_inferred=true WHERE id=%d"%(iid))
         conn.commit()
         print('network_inferred=true, guest_ip=%s, netdev=%s'%(ip,netdev))
+        
     except Exception as ex:
         import traceback
         traceback.print_exc()
