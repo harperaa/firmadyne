@@ -56,6 +56,11 @@ chmod a+rwx "${WORK_DIR}"
 chown -R "${USER}" "${WORK_DIR}"
 chgrp -R "${USER}" "${WORK_DIR}"
 
+#copy tarball from FirmSF (uploaded there) to Firmadyne images folder for actions from here on.
+if [ ! -e "${TARBALL_DIR}/${IID}.tar.gz" ]; then
+    cp "../FirmSF/images/${IID}.tar.gz" "${TARBALL_DIR}/${IID}.tar.gz"  #fix this to remove hard wired directory, use firmadyne.conf
+fi
+  
 if [ ! -e "${WORK_DIR}/${IID}.tar.gz" ]; then
     if [ ! -e "${TARBALL_DIR}/${IID}.tar.gz" ]; then
         echo "Error: Cannot find tarball of root filesystem for ${IID}!"
